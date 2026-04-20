@@ -1,10 +1,10 @@
 package com.arkaly.arkalybackend.controllers;
-
 import com.arkaly.arkalybackend.models.Usuario;
 import com.arkaly.arkalybackend.models.enums.Rol;
 import com.arkaly.arkalybackend.repositories.UsuarioRepository;
 import com.arkaly.arkalybackend.security.JwtUtils;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-@RestController
-@RequestMapping("/api/auth")
+@RestController // Peticiones http y las respuestas son datos no vistas(HTML)
+@RequestMapping("/api/auth") // Todos los endpoints de esta clase serán para autentificación
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
@@ -33,18 +33,27 @@ public class AuthController {
     // --- RUTA 1: REGISTRO (Para guardar la contraseña encriptada) ---
     @PostMapping("/registro")
     public ResponseEntity<?> registrarUsuario(@RequestBody Map<String, String> request) {
-        // ... comprobación de email ...
+
+        if (usuarioRepository.existsByEmail(request.get("email"))) {
+            return ResponseEntity.badRequest().body("El email ya está en uso");
+        }
+
+        if (usuarioRepository.existsByUsername(request.get("username"))) {
+            return ResponseEntity.badRequest().body("El username ya está en uso");
+        }
 
         Usuario nuevoUsuario = new Usuario();
-
-        // ESTA LÍNEA ES LA CLAVE:
         nuevoUsuario.setNombre(request.get("nombre"));
-
         nuevoUsuario.setEmail(request.get("email"));
         nuevoUsuario.setUsername(request.get("username"));
         nuevoUsuario.setPasswordHash(passwordEncoder.encode(request.get("password")));
+        nuevoUsuario.setActivo(true);
 
-        // ... resto de campos (rol, activo, etc) ...
+        if (usuarioRepository.count() == 0) {
+            nuevoUsuario.setRol(Rol.ADMIN);
+        } else {
+            nuevoUsuario.setRol(Rol.USUARIO);
+        }
 
         usuarioRepository.save(nuevoUsuario);
         return ResponseEntity.ok("Usuario registrado con éxito");
@@ -63,5 +72,20 @@ public class AuthController {
 
         // 3. Se lo enviamos al usuario en formato JSON
         return ResponseEntity.ok(Map.of("token", token));
+    }
+
+    @PutMapping("/cambiar-rol")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> cambiarRol(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String nuevoRol = request.get("rol");
+
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        usuario.setRol(Rol.valueOf(nuevoRol));
+        usuarioRepository.save(usuario);
+
+        return ResponseEntity.ok("Rol actualizado con exito");
     }
 }
