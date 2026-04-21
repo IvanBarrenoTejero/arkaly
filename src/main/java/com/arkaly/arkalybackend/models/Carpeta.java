@@ -36,4 +36,8 @@ public class Carpeta {
     @Column(name = "fecha_creacion")
     private Instant fechaCreacion;
 
+    @PrePersist
+    protected void onCreate() {
+        fechaCreacion = java.time.Instant.now();
+    }
 }

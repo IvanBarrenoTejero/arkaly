@@ -48,4 +48,8 @@ public class Documento {
     @Column(name = "fecha_subida")
     private Instant fechaSubida;
 
+    @PrePersist
+    protected void onCreate() {
+        fechaSubida = java.time.Instant.now();
+    }
 }

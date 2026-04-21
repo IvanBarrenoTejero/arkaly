@@ -8,6 +8,17 @@ import java.util.List;
 
 @Repository
 public interface CarpetaRepository extends JpaRepository<Carpeta, Integer> {
-    List<Carpeta> findByIdUsuarioAndIdCarpetaPadreIsNull(Integer idUsuario);
-    List<Carpeta> findByIdCarpetaPadre(Integer idCarpetaPadre);
+
+    // Todas las carpetas raíz de un usuario (sin carpeta padre)
+    List<Carpeta> findByIdUsuarioIdAndIdCarpetaPadreIsNull(Integer idUsuario);
+
+    // Subcarpetas de una carpeta concreta
+    List<Carpeta> findByIdCarpetaPadreId(Integer idCarpetaPadre);
+
+    // Todas las carpetas de un usuario
+    List<Carpeta> findByIdUsuarioId(Integer idUsuario);
+
+    // Comprobar si ya existe una carpeta con ese nombre en el mismo nivel
+    boolean existsByNombreAndIdUsuarioIdAndIdCarpetaPadreId(
+            String nombre, Integer idUsuario, Integer idCarpetaPadre);
 }
